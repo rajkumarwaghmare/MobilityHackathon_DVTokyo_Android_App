@@ -1,0 +1,83 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/bottom_sheet"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@android:color/white"
+    android:orientation="vertical"
+    app:behavior_hideable="true"
+    app:behavior_peekHeight="70dp"
+    android:gravity="center_horizontal"
+    android:layout_margin="8dp"
+    app:layout_behavior="android.support.design.widget.BottomSheetBehavior">
+
+    <ImageView
+        android:src="@drawable/ic_car"
+        android:id="@+id/car_icon"
+        android:layout_marginTop="8dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="Honda Vitz"
+        android:textSize="20sp"
+        android:textColor="@color/title" />
+
+    <TextView
+        android:id="@+id/model"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="39ZLT0M1"
+        android:textSize="16sp"
+        android:layout_marginBottom="10dp"
+        android:textColor="@color/title" />
+    <View
+        android:id="@+id/uppar_line"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginLeft="12dp"
+        android:layout_marginRight="12dp"
+        android:layout_marginBottom="12dp"
+        android:background="@color/gray"/>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+        <TextView
+            android:id="@+id/rate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="$0.8"
+            android:textStyle="bold"
+            android:textSize="24sp"
+            android:textColor="@color/title" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="per min"
+            android:layout_marginLeft="8dp"
+            android:textSize="12sp"
+            android:textColor="@color/title" />
+    </LinearLayout>
+
+
+    <TextView
+        android:id="@+id/button_charge"
+        android:clickable="true"
+        android:focusable="true"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginLeft="12dp"
+        android:layout_marginRight="12dp"
+        android:layout_marginTop="14dp"
+        android:layout_marginBottom="14dp"
+        android:background="@android:color/holo_blue_light"
+        android:gravity="center"
+        android:text="CHARGE FROM THIS BASE"
+        android:textColor="@android:color/white" />
+
+</LinearLayout>

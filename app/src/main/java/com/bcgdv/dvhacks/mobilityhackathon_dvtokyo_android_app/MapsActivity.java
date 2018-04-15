@@ -4,35 +4,54 @@ import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
+import android.media.Image;
+import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.provider.Settings;
+import android.support.design.widget.BottomSheetBehavior;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
-import android.os.Bundle;
 import android.test.mock.MockPackageManager;
 import android.util.Log;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bcgdv.dvhacks.mobilityhackathon_dvtokyo_android_app.data.BaseLocation;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
+import java.util.ArrayList;
+
+/**
+ * Map Activity that displays chargeable cars/stations around current location.
+ */
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
+
+    private final String TAG = getClass().getSimpleName();
 
     private GoogleMap mMap;
     private SupportMapFragment mMapFragment;
     private LocationManager mLocationManager;
     private FusedLocationProviderClient mFusedLocationClient;
-
-    private final String TAG = getClass().getSimpleName();
+    private BottomSheetBehavior mBottomSheetBehavior;
+    private LinearLayout mBottomSheet;
+    private BottomSheetBehavior mBottomSheetChargeBehavior;
+    private LinearLayout mBottomSheetCharge;
 
     private static final String MSG_GPS_ERROR = "GPS Error!";
     private static final String MSG_LOCATION_ERROR = "Please get permissions!";
@@ -48,27 +67,113 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .findFragmentById(R.id.map);
 
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-
         mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-
-        /**
-         * Get the location premissions if not yet
-         */
+        // Get the location permissions if not yet
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
                     new String[] {Manifest.permission.ACCESS_FINE_LOCATION},
                     REQUEST_CODE_LOCATION_PERMISSION);
         }
 
+        // Bottom sheet for charging start and stop view
+        mBottomSheetCharge =  findViewById(R.id.bottom_sheet_charge);
+        // init the bottom sheet behavior
+        mBottomSheetChargeBehavior = BottomSheetBehavior.from(mBottomSheetCharge);
+        // change the state of the bottom sheet
+        mBottomSheetChargeBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+        final ImageView button = mBottomSheetCharge.findViewById(R.id.button_charge);
+        button.setTag("start");
+        final TextView timeView = mBottomSheetCharge.findViewById(R.id.time);
+        final TextView totalView = mBottomSheetCharge.findViewById(R.id.total);
+        final CountDownTimer timer = prepareTimeCounterView(timeView, totalView, 80);//80 cents per min
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String status = (String) button.getTag();
+                if("start".equals(status)) {
+                    timer.start();
+                    button.setTag("stop");
+                    button.setImageResource(R.drawable.ic_stop);
+                } else {
+                    timer.cancel();
+                    mBottomSheetChargeBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+                    button.setTag("start");
+                    button.setImageResource(R.drawable.ic_start);
+                }
 
+            }
+        });
+
+        // get the bottom sheet view
+        mBottomSheet =  findViewById(R.id.bottom_sheet);
+        // init the bottom sheet behavior
+        mBottomSheetBehavior = BottomSheetBehavior.from(mBottomSheet);
+        // change the state of the bottom sheet
+        mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+        mBottomSheet.findViewById(R.id.button_charge).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                timeView.setText("00:00");
+                totalView.setText("$0.00");
+                mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+                mBottomSheetChargeBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+            }
+        });
+
+
+
+    }
+
+    /**
+     *
+     * @param timeView
+     * @param totalView
+     * @param rate
+     * @return
+     */
+    private CountDownTimer prepareTimeCounterView(final TextView timeView, final TextView totalView, final int rate) {
+        final int maxTimeInMSecs = 3600000;
+        final CountDownTimer timer = new CountDownTimer(maxTimeInMSecs, 1000) {
+            public void onTick(long millisUntilFinished) {
+                millisUntilFinished = maxTimeInMSecs - millisUntilFinished;
+
+                long secs = millisUntilFinished/1000;
+                long mins = 00;
+
+                int dollors = 0;
+                int cents = (int) (((float)rate/60)*secs);
+                if(cents >= 100) {
+                    dollors = cents / 100;
+                    cents = cents % 100;
+                }
+
+                if(secs >= 60) {
+                    mins = secs / 60;
+                    secs = secs % 60;
+                }
+                if(millisUntilFinished >= 60) {
+                    mins = mins % 60;
+                }
+
+
+
+                timeView.setText(String.format("%02d", mins)+":"+String.format("%02d", secs));
+                totalView.setText(String.format("$%01d", dollors)+"."+String.format("%02d", cents));
+            }
+
+            @Override
+            public void onFinish() {
+
+            }
+        };
+
+        return timer;
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        /**
-         * Make sure GPS is enabled, else direct user to setting screen.
-         */
+        //Make sure GPS is enabled, else direct user to setting screen.
         if (!mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             Intent myIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
             startActivity(myIntent);
@@ -117,10 +222,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             final double currentLongitude = currentLocation.getLongitude();
                             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(currentLatitude, currentLongitude), 15));
                             /**
-                             *he desired zoom level, in the range of 2.0 to 21.0. Values below this range are set to 2.0, and values above it are set to 21.0.
+                             * The desired zoom level, in the range of 2.0 to 21.0. Values below this range are set to 2.0, and values above it are set to 21.0.
                              * Increase the value to zoom in. Not all areas have tiles at the largest zoom levels.
                              */
                             mMap.animateCamera(CameraUpdateFactory.zoomTo(16), 2000, null);
+                            addMarkers();
+                            mMap.setOnMarkerClickListener(MapsActivity.this);
                         } else {
                             Log.e(TAG, "GPS is off");
                             Toast.makeText(MapsActivity.this, MSG_GPS_ERROR, Toast.LENGTH_LONG);
@@ -144,5 +251,42 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Toast.makeText(this, MSG_LOCATION_ERROR, Toast.LENGTH_SHORT);
             }
         }
+    }
+
+
+    /**
+     * Add markers for chargeable places around current location
+     * TODO get them from server
+     */
+    private void addMarkers() {
+        Log.d(TAG, "Adding markers");
+
+        if(mMap != null) {
+            BitmapDescriptor icon = BitmapDescriptorFactory.fromResource(R.drawable.ic_marker);
+            ArrayList<BaseLocation> locations = BaseLocation.generateDummyData();
+
+            for(BaseLocation location : locations) {
+                mMap.addMarker(new MarkerOptions()
+                        .position(new LatLng(location.getLat(), location.getLon()))
+                        .icon(icon))
+                        .setTag(locations.indexOf(location));
+            }
+        } else {
+            Log.e(TAG, "Cant add markers as mMap object is null");
+        }
+    }
+
+    @Override
+    public boolean onMarkerClick(Marker marker) {
+        ArrayList<BaseLocation> locations = BaseLocation.generateDummyData();
+        BaseLocation tappedLocation = locations.get((int)marker.getTag());
+
+        // change the state of the bottom sheet
+        mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+        ((TextView)mBottomSheet.findViewById(R.id.title)).setText(tappedLocation.getName());
+        ((TextView)mBottomSheet.findViewById(R.id.model)).setText(tappedLocation.getModel());
+        ((TextView)mBottomSheet.findViewById(R.id.rate)).setText("$"+tappedLocation.getRate());
+
+        return false;
     }
 }
