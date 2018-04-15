@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationManager;
-import android.media.Image;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.provider.Settings;
@@ -21,7 +20,12 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
 import com.bcgdv.dvhacks.mobilityhackathon_dvtokyo_android_app.data.BaseLocation;
+import com.bcgdv.dvhacks.mobilityhackathon_dvtokyo_android_app.network.VolleyNetwork;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -35,6 +39,10 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 
 /**
@@ -91,10 +99,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public void onClick(View view) {
                 String status = (String) button.getTag();
                 if("start".equals(status)) {
+                    informServer(true);
                     timer.start();
                     button.setTag("stop");
                     button.setImageResource(R.drawable.ic_stop);
                 } else {
+                    informServer(false);
                     timer.cancel();
                     mBottomSheetChargeBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
                     button.setTag("start");
@@ -121,6 +131,31 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
 
 
+
+    }
+
+    /**
+     * Inform server about charging start and stop events
+     * @param isStart "START" event if true, "STOP" otherwise
+     */
+    private void informServer(boolean isStart) {
+        String START_URL  = "http://192.168.1.63:3000/reserve";
+        String STOP_URL  = "http://192.168.1.63:3000/finish";
+        String url = isStart ? START_URL : STOP_URL;
+
+        StringRequest request = new StringRequest(Request.Method.POST, url, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                Log.d(TAG, "Successfully informed the server");
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.e(TAG, "Error in informing the server");
+            }
+        });
+
+        VolleyNetwork.getInstance(this).addToRequestQueue(request);
 
     }
 
