@@ -136,8 +136,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * @param isStart "START" event if true, "STOP" otherwise
      */
     private void informServer(boolean isStart) {
-        String START_URL  = "http://192.168.1.63:3000/reserve";
-        String STOP_URL  = "http://192.168.1.63:3000/finish";
+        String START_URL  = "http://54.153.28.51:3000/reserve";
+        String STOP_URL  = "http://54.153.28.51:3000/finish";
         String url = isStart ? START_URL : STOP_URL;
 
         StringRequest request = new StringRequest(Request.Method.POST, url, new Response.Listener<String>() {
